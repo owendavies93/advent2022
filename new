@@ -21,10 +21,12 @@ do
 #!/usr/bin/env perl
 use Mojo::Base -strict;
 
+use lib "../cheatsheet/lib";
+
 use Array::Utils qw(:all);
 use List::AllUtils qw(:all);
 use Memoize;
-use POSIX qw(ceil floor round);
+use POSIX qw(ceil floor);
 
 my \$file = defined \$ARGV[0] ? \$ARGV[0] : 'inputs/day$DAY';
 \$file = "inputs/day$DAY-\$file" if \$file =~ /test/;
