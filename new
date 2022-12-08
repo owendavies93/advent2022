@@ -23,6 +23,12 @@ use Mojo::Base -strict;
 
 use lib "../cheatsheet/lib";
 
+# use Advent::Dijkstra;
+# use Advent::Grid::Dense::Square;
+# use Advent::Grid::Dense::Diagonal;
+# use Advent::Grid::Sparse;
+use Advent::Utils::Input qw(get_ints);
+
 use Array::Utils qw(:all);
 use List::AllUtils qw(:all);
 use Memoize;
