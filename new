@@ -27,7 +27,7 @@ use lib "../cheatsheet/lib";
 # use Advent::Grid::Dense::Square;
 # use Advent::Grid::Dense::Diagonal;
 # use Advent::Grid::Sparse;
-use Advent::Utils::Input qw(get_ints);
+use Advent::Utils::Input qw(get_grouped_lines get_ints get_lines get_nonempty_groups);
 
 use Array::Utils qw(:all);
 use List::AllUtils qw(:all);
