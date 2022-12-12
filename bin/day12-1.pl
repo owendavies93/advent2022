@@ -24,16 +24,20 @@ while (<$fh>) {
     $height++;
 }
 
-my $g = Advent::Grid::Dense::Ord->new({
-    grid => \@grid,
-    width => $width,
-    });
-
-my $e = $g->edge_list(1);
-my $d = Advent::Dijkstra->new;
 my $start = first_index { $_ eq 'S' } @grid;
-my $end = first_index { $_ eq 'E' } @grid;
-$e->{$end} = {};
+my $end   = first_index { $_ eq 'E' } @grid;
+
+$grid[$start] = 'a';
+$grid[$end] = 'z';
+my @ords = map { ord($_) - ord('a') } @grid;
+
+my $g = Advent::Grid::Dense::Ord->new({
+    grid => \@ords,
+    width => $width,
+});
+
+my $e = $g->edge_list();
+my $d = Advent::Dijkstra->new;
 
 say $d->get_shortest_path_length({
     start     => $start,
@@ -43,26 +47,18 @@ say $d->get_shortest_path_length({
 
 package Advent::Grid::Dense::Ord;
 
-use Mojo::Base 'Advent::Grid::Dense';
+use Mojo::Base 'Advent::Grid::Dense::Square';
 
-sub neighbours_from_index {
-    my ($self, $i) = @_;
-
-    my @adjacent;   
-    if ($i % $self->{width} == 0) {
-        @adjacent = ($i + 1, $i + $self->{width}, $i - $self->{width});
-    } elsif ($i % $self->{width} == ($self->{width} - 1)) {
-        @adjacent = ($i - 1, $i + $self->{width}, $i - $self->{width});
-    } else {
-        @adjacent = ($i + 1, $i - 1, $i + $self->{width}, $i - $self->{width});
+sub edge_list {
+    my $self = shift;
+    my $edges = {};
+    for (my $i = 0; $i < scalar @{$self->{grid}}; $i++) {
+        my $v = $self->get_at_index($i);
+        for my $n ($self->neighbours_from_index($i)) {
+            my $nv = $self->get_at_index($n);
+            $edges->{$i}->{$n} = 1 if $nv <= $v + 1;
+        }
     }
-    @adjacent = grep { $self->check_bounds_of_index($_) } @adjacent;
-    return grep {
-        ($self->get_at_index($i) eq 'z' && $self->get_at_index($_) eq 'E') ||
-        ($self->get_at_index($i) eq 'S' && $self->get_at_index($_) eq 'a') ||
-        (
-            ord($self->get_at_index($_)) <= ord($self->get_at_index($i)) + 1 &&
-            $self->get_at_index($_) ne 'E'
-        )
-    } @adjacent;
+    return $edges;
 }
+
