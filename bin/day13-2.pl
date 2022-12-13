@@ -29,40 +29,36 @@ for my $pair (@pairs) {
     push @$packets, $right;
 }
 
-my @sorted = sort {
-    my $res = compare($a, $b);
-    $res == 1 ? -1 : 1;
-} @$packets;
+my @sorted = sort { compare($a, $b) } @$packets;
 
-my $x = first_index { 
+my $x = 1 + first_index {
     ref($_) eq 'ARRAY' && ref($_->[0]) eq 'ARRAY' &&
-    $_->[0]->[0] eq 2
+    defined $_->[0]->[0] && $_->[0]->[0] == 2
 } @sorted;
 
-my $y = first_index { 
+my $y = 1 + first_index {
     ref($_) eq 'ARRAY' && ref($_->[0]) eq 'ARRAY' &&
-    $_->[0]->[0] eq 6
+    defined $_->[0]->[0] && $_->[0]->[0] == 6
 } @sorted;
 
-my $res = ($x + 1) * ($y + 1);
-say $res;
+say $x * $y;
 
 sub compare {
     my ($l, $r) = @_;
 
     if ($l =~ /^\d+$/ && $r =~ /^\d+$/) {
-        return 1 if $l < $r;
-        return 0 if $l > $r;
-        return undef if $l == $r;
+        return -1 if $l < $r;
+        return 1 if $l > $r;
+        return 0 if $l == $r;
     } elsif (ref($l) eq 'ARRAY' && ref($r) eq 'ARRAY') {
         for (my $i = 0; $i < scalar @$l && $i < scalar @$r; $i++) {
             my $result = compare($l->[$i], $r->[$i]);
-            return $result if defined $result;
+            return $result if $result != 0;
         }
 
-        return 1 if scalar @$l < scalar @$r;
-        return 0 if scalar @$l > scalar @$r;
-        return undef;
+        return -1 if scalar @$l < scalar @$r;
+        return 1 if scalar @$l > scalar @$r;
+        return 0;
     } else {
         if ($l =~ /^\d+$/) {
             return compare([$l], $r);
