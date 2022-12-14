@@ -26,11 +26,8 @@ while (<$fh>) {
 }
 
 my $start = [500, 0];
-my $width = $maxx - $minx;
-my $height = $maxy - $miny;
-
 my $rocks = {};
-my $resting_sand = {};
+my $sand = {};
 
 for my $path (@$paths) {
     for (my $i = 0; $i < scalar @$path - 1; $i++) {
@@ -72,44 +69,29 @@ say $units;
 
 sub step {
     my $pos = shift;
-    my $downx = $pos->[0];
-    my $downy = $pos->[1] + 1;
-    # down
-    if (!is_blocked($downx, $downy)) {
-        return [$downx, $downy];
+    my $dx = $pos->[0];
+    my $dy = $pos->[1] + 1;
+    for (([$dx, $dy], [$dx - 1, $dy], [$dx + 1, $dy])) {
+        return $_ if !is_blocked($_);
     }
-    # down and left
-    $downx--;
-    if (!is_blocked($downx, $downy)) {
-        return [$downx, $downy];
-    }
-    # down and right
-    $downx += 2;
-    if (!is_blocked($downx, $downy)) {
-        return [$downx, $downy];
-    }
-    # blocked
-    $resting_sand->{$pos->[0], $pos->[1]} = 1;
+    $sand->{$pos->[0], $pos->[1]} = 1;
     return $pos;
 }
 
 sub is_blocked {
-    my ($x, $y) = @_;
-    return (exists $rocks->{$x,$y} || exists $resting_sand->{$x, $y});
+    my $p = shift;
+    my $x = $p->[0];
+    my $y = $p->[1];
+    return exists $rocks->{$x, $y} || exists $sand->{$x, $y};
 }
 
 sub same_pos {
     my ($p1, $p2) = @_;
-    return ($p1->[0] == $p2->[0] && $p1->[1] == $p2->[1]);
+    return $p1->[0] == $p2->[0] && $p1->[1] == $p2->[1];
 }
 
 sub in_abyss {
     my $p = shift;
-
-    return (
-        $p->[0] < $minx ||
-        $p->[0] > $maxx ||
-        $p->[1] > $maxy
-    );
+    return $p->[0] < $minx || $p->[0] > $maxx || $p->[1] > $maxy;
 }
 
