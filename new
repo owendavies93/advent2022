@@ -31,6 +31,7 @@ use Advent::Utils::Input qw(get_grouped_lines get_ints get_lines get_nonempty_gr
 use Advent::Utils::Transform qw(print_grid reverse_rows rotate_clockwise transpose);
 
 use Array::Utils qw(:all);
+use Data::Dumper;
 use List::AllUtils qw(:all);
 use Memoize;
 use POSIX qw(ceil floor);
