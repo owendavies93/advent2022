@@ -23,22 +23,16 @@ my $rhs_val = eval_rec($rhs_root); # invariant in humn
 
 #
 # found by manual inspection:
-# every 4000 that we increase hum_val, lhs decreases by 56415
-# TODO this might not be quite right because the starting number is too low
-# it's close though, found a better number with some manual fiddling
+# we can just use linear interpolation to find the answer since the
+# equation for root is linear
 #
 $consts->{'humn'} = 0;
-my $lhs_val = eval_rec($lhs_root);
-my $diff = $lhs_val - $rhs_val;
-my $per4k = $diff / 56415;
-$consts->{'humn'} = int(($per4k + 3085) * 4000);
+my $zero = eval_rec($lhs_root);
+$consts->{'humn'} = 1;
+my $diff = eval_rec($lhs_root) - $zero;
 
-while ($lhs_val != $rhs_val) {
-    $consts->{'humn'}++;
-    $lhs_val = eval_rec($lhs_root); 
-}
-
-say $consts->{'humn'};
+my $answer = ($rhs_val - $zero) / $diff;
+say int($answer + 0.5);
 
 sub eval_rec {
     my $token = shift;
