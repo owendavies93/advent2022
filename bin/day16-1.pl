@@ -50,7 +50,6 @@ my @states = ([$valve_pows->{$start}, 0, 0]);
 my $best_at_state = {};
 
 for my $m (1..$max_mins) {
-    say "$m, " . scalar @states;
     my @next = ();
     for my $s (@states) {
         my $pow = $s->[0];

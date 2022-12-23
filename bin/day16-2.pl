@@ -5,10 +5,9 @@ use lib "../cheatsheet/lib";
 
 use Advent::Utils::Input qw(get_ints);
 
-use Algorithm::Combinatorics qw(permutations);
-use Data::Dumper;
 use List::AllUtils qw(:all);
 use List::PriorityQueue;
+use Memoize;
 
 my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day16';
 $file = "inputs/day16-$file" if $file =~ /test/;
@@ -30,123 +29,67 @@ while (<$fh>) {
     }
 }
 
-# Convert valves to powers of 2 to simplify state storage
-# (found this trick on reddit)
-my $valve_pows = {};
-my $flow_pows = {};
-my $next_pows = {};
-my $i = 1;
-for my $k (sort { $a cmp $b } keys %$valves) {
-    $valve_pows->{$k} = $i;
-    $flow_pows->{$i} = $flow_rates->{$k};
-    $i *= 2;
-}
+my $best_flow = 0;
 
-my $all = 1;
-$i = 1;
-for my $k (sort { $a cmp $b } keys %$valves) {
-    $next_pows->{$i} = [ map { $valve_pows->{$_ } } @{$valves->{$k}} ];
-    $all |= $i;
-    $i *= 2;
-}
+say get_best_flow(0, 26, {}, ['AA', 'AA'], 0);
 
-my $max_mins = 26;
-my $max_flow = $max_mins * $total_flow;
-my $start = 'AA';
+memoize('paths');
+    sub paths {
+    my $start = shift;
+    my $q = List::PriorityQueue->new();
+    my $dists = {};
 
-# Keep track of "least wasted" pressure in a state compared to the max pressure
-# Dijkstra the least wasted pressure to find the minimum weight:
-# - nodes are the state: (my loc, elephant loc, what's open, current flow, remaining time)
-# - edges are the (total_flow - current_flow)
-# Can't use my existing Dijkstra here because we need to compute
-# neighbours on the fly
+    $q->insert([$start, 0], 0);
+    while (my $c = $q->pop()) {
+        my ($v, $d) = @$c;
 
-my $seen = {};
-my $q = List::PriorityQueue->new();
-my $start_state = [$valve_pows->{$start}, $valve_pows->{$start}, 0, 0, $max_mins];
-$q->insert([$start_state, 0], 0);
+        for my $n (@{$valves->{$v}}) {
+            next if exists $dists->{$n};
 
-while (my $c = $q->pop()) {
-    my ($state, $dist) = @$c;
-    
-    if (done($state)) {
-        my $least_wasted = $dist;
-        say $max_flow - $least_wasted;
-        exit;
-    }
-
-    next if ($seen->{state_key($state)});
-    
-    $seen->{state_key($state)} = 1;
-
-    for my $n (neighbours($state)) {
-        my ($ns, $nd) = @$n;
-        next if $seen->{state_key($ns)};
-        my $new_dist = $dist + $nd;
-        $q->insert([$ns, $new_dist], $new_dist);
-    }
-}
-
-# We're at an end node if the time remaining hits 0
-sub done {
-    my $state = shift;
-    return $state->[-1] == 0;
-}
-
-# Get the neighbouring states for a given state and the edge costs
-sub neighbours {
-    my $s = shift;
-    my ($me, $elephant, $open, $flow, $rem) = @$s;
-
-    die "shouldn't be 0 remaining here" if $rem <= 0;
-
-    if ($open == $all) {
-        return ([[undef, undef, $open, $flow, $rem - 1], 0]);
-    }
-
-    my @moves = next_states($me, $open);
-    my @emoves = next_states($elephant, $open);
-
-    my @neighbour_states = ();
-    for my $mm (@moves) {
-        for my $em (@emoves) {
-            my ($md, $mo, $mf) = @$mm;
-            my ($ed, $eo, $ef) = @$em;
-            my $new_opened = $open;
-
-            $new_opened |= $mo if defined $mo;
-            $new_opened |= $eo if defined $eo;
-
-            my $new_flow = $flow + $mf + $ef;
-            push @neighbour_states, [[
-                $md, $ed, $new_opened, $new_flow, $rem - 1
-            ], $total_flow - $flow]
+            $dists->{$n} = $d + 2;
+            $q->insert([$n, $d + 1], $d + 1);
         }
     }
 
-    return @neighbour_states;
-}
-
-sub next_states {
-    my ($pow, $open) = @_;
-
-    my $flow_rate = $flow_pows->{$pow};
-    my $tunnels = $next_pows->{$pow};
-
-    my @states = ();
-    if (($pow & $open) == 0 && $flow_rate > 0) {
-        push @states, [$pow, $pow, $flow_rate]; 
+    my $pos_dists = {};
+    for my $k (keys %$dists) {
+        $pos_dists->{$k} = $dists->{$k} if $flow_rates->{$k} > 0;
     }
 
-    for my $next (@$tunnels) {
-        push @states, [$next, undef, 0];
-    }
-
-    return @states;
+    return $pos_dists;
 }
 
-sub state_key {
-    my $state = shift;
-    return join $;, @$state;
+sub get_best_flow {
+    my ($cur_flow, $rem_mins, $on, $valves, $other) = @_;
+    my $flow = $cur_flow;
+
+    my $paths = paths($valves->[0]);
+    for my $d (keys %$paths) {
+        my $t = $paths->{$d};
+
+        if (!exists $on->{$d} && $t <= $rem_mins) {
+            my $next_valves = [$valves->[1], $d];
+            my $next_mins   = $rem_mins - $other;
+            my $next_other  = $t - $other;
+
+            my $new_flow = $cur_flow + ($rem_mins - $t) * $flow_rates->{$d};
+            # Guess a likely average flow rate per minute to prune with
+            my $prune_value = ($rem_mins * 2 - $t - $other) * 45;
+
+            next if $new_flow + $prune_value < $best_flow;
+
+            my $new_on = { %$on };
+            $new_on->{$d} = 1;
+
+            my $candidate_flow = get_best_flow(
+                $new_flow, $next_mins, $new_on, $next_valves, $next_other
+            );
+
+            $flow = max($best_flow, $candidate_flow);
+        }
+    }
+
+    $best_flow = max($best_flow, $flow);
+    return $flow;
 }
 

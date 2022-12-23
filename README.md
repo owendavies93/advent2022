@@ -6,4 +6,3 @@
 * Speed up
     * day 14 part 2
     * day 15 part 2 (only look at boundaries of viewing regions of sensors)
-    * day 16 part 2
