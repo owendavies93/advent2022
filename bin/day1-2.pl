@@ -3,7 +3,7 @@ use Mojo::Base -strict;
 
 use List::Util qw(max sum);
 
-my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day01';
+my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day1';
 $file = "inputs/day01-$file" if $file =~ /test/;
 
 my $elves = [];
