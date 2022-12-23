@@ -5,7 +5,6 @@ use lib "../cheatsheet/lib";
 
 use Advent::Utils::Input qw(get_ints);
 
-use Array::Utils qw(:all);
 use List::AllUtils qw(:all);
 
 my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day15';

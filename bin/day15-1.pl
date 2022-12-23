@@ -5,8 +5,6 @@ use lib "../cheatsheet/lib";
 
 use Advent::Utils::Input qw(get_ints);
 
-use Array::Utils qw(:all);
-
 my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day15';
 $file = "inputs/day15-$file" if $file =~ /test/;
 
