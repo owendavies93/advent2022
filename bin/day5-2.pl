@@ -30,6 +30,7 @@ open(my $fh, '<', $file) or die $!;
 while (<$fh>) {
     chomp;
     my ($num, $from, $to) = $_ =~ /(\d+) from (\d) to (\d)/;
+    next if !defined $num;
     my @removed = splice @{$stacks->[$from]}, $num * -1;
     push @{$stacks->[$to]}, @removed;
 }

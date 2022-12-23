@@ -30,6 +30,7 @@ open(my $fh, '<', $file) or die $!;
 while (<$fh>) {
     chomp;
     my ($num, $from, $to) = $_ =~ /(\d+) from (\d) to (\d)/;
+    next if !defined $num;
     for (1..$num) {
         my $val = pop @{$stacks->[$from]};
         push @{$stacks->[$to]}, $val;
