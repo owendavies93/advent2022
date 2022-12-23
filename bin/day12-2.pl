@@ -40,15 +40,17 @@ my $e = $g->edge_list();
 my $d = Advent::Dijkstra->new;
 
 my @starts = indexes { $_ eq 'a' } @grid;
-push @starts, $start;
-say min map {
-    $d->get_shortest_path_length({
-        start => $_,
-        end => $end,
-        edge_list => $e,
-        regen => 1,
-    }) || 0xffff;
-} @starts;
+
+my $end_func = sub {
+    my $c = shift;
+    return grep { $_ eq $c } @starts;
+};
+
+say $d->get_shortest_path_length({
+    start     => $end,
+    end_func  => $end_func,
+    edge_list => $e
+});
 
 package Advent::Grid::Dense::Ord;
 
@@ -61,7 +63,7 @@ sub edge_list {
         my $v = $self->get_at_index($i);
         for my $n ($self->neighbours_from_index($i)) {
             my $nv = $self->get_at_index($n);
-            $edges->{$i}->{$n} = 1 if $nv <= $v  + 1;
+            $edges->{$i}->{$n} = 1 if $nv >= $v - 1;
         }
     }
     return $edges;
