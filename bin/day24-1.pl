@@ -1,112 +1,90 @@
 #!/usr/bin/env perl
 use Mojo::Base -strict;
 
+use lib '../cheatsheet/lib';
+
+use Advent::Utils::Input qw(get_lines);
+
 use List::PriorityQueue;
 
 my $file = defined $ARGV[0] ? $ARGV[0] : 'inputs/day24';
 $file = "inputs/day24-$file" if $file =~ /test/;
 
 my $dirs = {
-    '^' => [0, -1],
-    'v' => [0, 1],
-    '<' => [-1, 0],
-    '>' => [1, 0],
+    '>' => [0, 1],
+    '<' => [0, -1],
+    '^' => [-1, 0],
+    'v' => [1, 0],
 };
 
 my $bliz = {};
-my ($minx, $maxx, $miny, $maxy) = (1, 0, 1, 0);
-my $startx = 0;
-my $endx = 0;
 
 open(my $fh, '<', $file) or die $!;
-while (<$fh>) {
-    chomp;
-    $maxx = (length $_) - 1;
-    my $x = 0;
-    for my $ch (split //, $_) {
-        if ($maxy == 0 && $ch eq '.') {
-            $startx = $x;
-        }
+my @data = get_lines($fh);
 
-        if ($maxy > 0 && $ch eq '.') {
-            $endx = $x;
-        }
-
-        if ($ch =~ /[\^v<>]/) {
-            $bliz->{$x, $maxy, $ch} = 1;
-        }
-        $x++;
+for my $i (0..scalar @data - 1) {
+    my @line = split //, $data[$i];
+    for my $j (1..scalar @line) {
+        last if $line[$j] eq '#';
+        next if $line[$j] eq '.';
+        $bliz->{$i - 1, $j - 1, $line[$j]} = 1;
     }
-    $maxy++;
 }
 
-$maxy--;
-
-my @opts = [0, 0];
+my $len_x = scalar @data - 2;
+my $len_y = (length $data[0]) - 2;
+my @opts = ([0, 0]);
 push @opts, values %$dirs;
 
+my ($sx, $sy) = (-1, 0);
+my ($ex, $ey) = ($len_x, $len_y - 1);
+
+my $heur = abs($ex - $sx) + abs($ey - $sy);
 my $q = List::PriorityQueue->new();
-my $seen = {};
-my $start = [$startx, 0, 0];
-
-$q->insert($start, 0);
-$seen->{state_key($start)} = 1;
-
-my $best_t = 0;
+my $state = [$heur, $sx, $sy, 0];
+$q->insert($state, $heur);
+my $seen = {
+    state_key($state) => 1,
+};
 
 while (my $c = $q->pop()) {
-    my ($x, $y, $t) = @$c;
-
-    if ($y == $maxy) {
-        say $t;
-        exit;
-    }
-
+    my ($score, $x, $y, $t) = @$c;
     for my $o (@opts) {
         my ($dx, $dy) = @$o;
         my $nx = $x + $dx;
         my $ny = $y + $dy;
+        if ($nx == $ex && $ny == $ey) {
+            say $t + 1;
+            exit;
+        }
 
-        if (can_be_at($nx, $ny, $t + 1)) {
-            my $state = [$nx, $ny, $t + 1];
-            my $k = state_key($state);
+        if (!collides($t + 1, $nx, $ny)) {
+            my $h = abs($x - $ex) + abs($y - $ey) + $t;
+            my $newitem = [$h, $nx, $ny, $t + 1];
+            my $k = state_key($newitem);
             if (!exists $seen->{$k}) {
-                $q->insert($state, $t + 1);
+                $q->insert($newitem, $h);
                 $seen->{$k} = 1;
             }
         }
     }
 }
 
-sub can_be_at {
-    my ($x, $y, $t) = @_;
+sub collides {
+    my ($time, $x, $y) = @_;
 
-    return 1 if $y == 0 && $x == $startx;
-    return 1 if $y == $maxy && $x == $endx;
+    return 0 if $x == $sx && $y == $sy;
+    return 0 if $x == $ex && $y == $ey;
+    return 1 if $x <= -1 || $y <= -1 || $x >= $len_x || $y >= $len_y;
 
-    return 0 if $x < $minx || $y < $miny || $x >= $maxx || $y >= $maxy;
-
-    # TODO: this would be way quicker but doesn't work because I'm
-    #       bad at modulo arithmatic
-    # for my $d (keys %$dirs) {
-    #     my ($dx, $dy) = @{$dirs->{$d}};
-    #     my $nx = ($x - $t * $dx) % ($maxx - 1);
-    #     my $ny = ($y - $t * $dy) % ($maxy - 1);
-    #     if (exists $bliz->{$nx, $ny, $d}) {
-    #         return 0;
-    #     }
-    # }
-
-    for my $b (keys %$bliz) {
-        my ($bx, $by, $bd) = split $;, $b;
-        my ($dx, $dy) = @{$dirs->{$bd}};
-        if ($x == ($bx + $t * $dx) % ($maxx - 1) &&
-            $y == ($by + $t * $dy) % ($maxy - 1)) {
-            return 0;
-        }
+    for my $d (keys %$dirs) {
+        my ($dx, $dy) = @{$dirs->{$d}};
+        my $nx = ($x - $time * $dx) % $len_x;
+        my $ny = ($y - $time * $dy) % $len_y;
+        return 1 if exists $bliz->{$nx, $ny, $d};
     }
 
-    return 1;
+    return 0;
 }
 
 sub state_key {
