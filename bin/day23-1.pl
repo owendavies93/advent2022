@@ -3,6 +3,7 @@ use Mojo::Base -strict;
 
 use lib "../cheatsheet/lib";
 
+use Advent::Point::Point2;
 use Advent::Grid::Sparse;
 
 use List::AllUtils qw(:all);
@@ -31,21 +32,22 @@ while (<$fh>) {
     $width = scalar $_ if !defined $width;
     my $x = 0;
     for my $ch (split //, $_) {
-        $elves->set($x, $height, 1) if $ch eq '#';
+        my $p = Advent::Point::Point2->new($x, $height);
+        $elves->set($p, 1) if $ch eq '#';
         $x++;
     }
     $height++;
 }
 
 my $rounds = 10;
-
 for (1..$rounds) {
     my $to_move = {};
     my $dests = {};
     for my $elf ($elves->all()) {
         my ($x, $y) = split $;, $elf;
+        my $p = Advent::Point::Point2->new($x, $y);
 
-        next if all { !defined $_ } $elves->neighbour_values($x, $y);
+        next if all { !defined $_ } $elves->neighbour_values($p);
 
         for my $dir (@DIRS) {
             my ($dx, $dy) = @{$dir->[0]};
@@ -53,15 +55,17 @@ for (1..$rounds) {
 
             for my $check (@$dir) {
                 my ($ddx, $ddy) = @$check;
-                if (defined $elves->get($x + $ddx, $y + $ddy)) {
+                my $pdd = Advent::Point::Point2->new($ddx, $ddy);
+                if (defined $elves->get($p->add($pdd))) {
                     $empty = 0;
                     last;
                 }
             }
 
             if ($empty == 1) {
-                $to_move->{$x, $y} = [$x + $dx, $y + $dy];
-                push @{$dests->{$x + $dx, $y + $dy}}, [$x, $y];
+                my $pd = $p->add(Advent::Point::Point2->new($dx, $dy));
+                $to_move->{$p->key} = $pd;
+                push @{$dests->{$pd->key}}, $p;
                 last;
             }
         }
@@ -70,15 +74,17 @@ for (1..$rounds) {
     for my $dest (keys %$dests) {
         my @prevs = @{$dests->{$dest}};
         if (scalar @prevs > 1) {
-            delete $to_move->{$_->[0], $_->[1]} for @prevs;
+            delete $to_move->{$_->key} for @prevs;
         }
     }
 
     for my $tm (keys %$to_move) {
         my ($fromx, $fromy) = split $;, $tm;
-        my ($tox, $toy) = @{$to_move->{$tm}};
-        $elves->delete($fromx, $fromy);
-        $elves->set($tox, $toy, 1);
+        my $from = Advent::Point::Point2->new($fromx, $fromy);
+        my $to = $to_move->{$tm};
+
+        $elves->delete($from);
+        $elves->set($to, 1);
     }
 
     my $d = shift @DIRS;
@@ -90,16 +96,18 @@ my $maxx = my $maxy = 0;
 
 for my $elf ($elves->all()) {
     my ($x, $y) = split $;, $elf;
-    $minx = $x if $x < $minx;
-    $maxx = $x if $x > $maxx;
-    $miny = $y if $y < $miny;
-    $maxy = $y if $y > $maxy;
+    my $p = Advent::Point::Point2->new($x, $y);
+    $minx = $p->x if $p->x < $minx;
+    $maxx = $p->x if $p->x > $maxx;
+    $miny = $p->y if $p->y < $miny;
+    $maxy = $p->y if $p->y > $maxy;
 }
 
 my $empty = 0;
 for my $y ($miny..$maxy) {
     for my $x ($minx..$maxx) {
-        $empty++ if !defined $elves->get($x, $y);
+        my $p = Advent::Point::Point2->new($x, $y);
+        $empty++ if !defined $elves->get($p);
     }
 }
 
