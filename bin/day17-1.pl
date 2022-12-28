@@ -66,7 +66,6 @@ for my $i (0..$total - 1) {
 
     $curr_type++;
     $curr_type = 0 if $curr_type == scalar @types;
-    
 }
 
 say $starty + 1;

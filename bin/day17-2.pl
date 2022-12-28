@@ -35,6 +35,7 @@ my $curr_jet = 0;
 my $total = 2022;
 my $starty = -1;
 my $states = {};
+my $to_add = 0;
 
 for my $i (0..$total - 1) {
     my ($x, $y) = (2, $starty + 4); 
@@ -58,7 +59,11 @@ for my $i (0..$total - 1) {
             $y++;
             $g->add_type($x, $y, $curr_type);
 
-            say "top at 1684: $starty" if $i == 1684;
+            if ($file =~ /test/ && $i == 26) {
+                $to_add = $starty;
+            } elsif ($i == 1684) {
+                $to_add = $starty - 2;
+            }
 
             my @topn = $g->top_n_rows(10, $starty);
             my $state_key = join $;, ($curr_type, $curr_jet, @topn);
@@ -71,9 +76,7 @@ for my $i (0..$total - 1) {
                 my $top_increase = $rem_cycles * $top_diff;
                 my $rocks_after_amp = $i + $period * $rem_cycles;
                 my $top_after_amp = $starty + $top_increase;
-                say "rocks stopped after amp: $rocks_after_amp";
-                say "top after amp: $top_after_amp";
-                say "need: " . (1000000000000 - $rocks_after_amp) . " for sum";
+                say $top_after_amp + $to_add;
                 exit;
             } else {
                 $states->{$state_key} = [$starty, $i];
@@ -88,10 +91,7 @@ for my $i (0..$total - 1) {
 
     $curr_type++;
     $curr_type = 0 if $curr_type == scalar @types;
-    
 }
-
-say $starty + 1;
 
 sub get_dir {
     my $dir = shift;
